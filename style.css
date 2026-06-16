@@ -1,0 +1,895 @@
+/* ============================================================
+   EXPENSE WORLD — STYLESHEET
+   ------------------------------------------------------------
+   This file controls how the whole site LOOKS:
+   colors, fonts, spacing, card shapes, and animations.
+
+   It's organized into numbered sections (search for "====="):
+    1. Design tokens (colors, fonts, sizes) — edit these to
+       re-theme the whole site from one place.
+    2. Base / reset styles
+    3. Layout (header, main, footer, sections)
+    4. Cards & lists
+    5. Buttons
+    6. Form fields (inputs, selects, labels)
+    7. Add Expense item rows
+    8. Modals (popup boxes)
+    9. Toast (small pop-up messages)
+   10. Special components (highlight card, averages, tracking grid)
+   11. Page-load animations
+   12. Scroll-to-top button
+   13. Responsive tweaks for larger screens
+   14. Accessibility — respect "reduce motion"
+   ============================================================ */
+
+
+/* ============================================================
+   1. DESIGN TOKENS
+   These CSS variables are reused everywhere below.
+   Want to change the app's colors? Just edit these values.
+   ============================================================ */
+:root {
+  /* --- Colors --- */
+  --color-bg: #F4FBF7;            /* page background — soft mint */
+  --color-card: #FFFFFF;          /* card background — white */
+  --color-primary: #1F8A70;       /* main teal — buttons, totals */
+  --color-primary-dark: #146354;  /* darker teal — gradients, hover */
+  --color-primary-light: #E3F5EF; /* very light teal — tags, highlights */
+  --color-accent: #F2542D;        /* warm coral — Clear Payment, alerts */
+  --color-accent-light: #FFEDE7;  /* light coral — accent backgrounds */
+  --color-danger: #D6483B;        /* red — delete buttons */
+  --color-text: #1E2A26;          /* main text color */
+  --color-text-muted: #6B7C76;    /* secondary / lighter text */
+  --color-border: #DCEEE7;        /* light borders & dividers */
+
+  /* --- Fonts --- */
+  --font-display: 'Fredoka', sans-serif; /* headings & big numbers */
+  --font-body: 'Inter', sans-serif;       /* normal text */
+
+  /* --- Shapes & shadows --- */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-card: 0 4px 14px rgba(31, 138, 112, 0.10);
+  --shadow-card-hover: 0 6px 20px rgba(31, 138, 112, 0.16);
+
+  /* --- Animation speeds --- */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+}
+
+
+/* ============================================================
+   2. BASE / RESET
+   ============================================================ */
+* {
+  box-sizing: border-box; /* padding & border included in element width */
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth; /* smooth scroll if we ever jump to an anchor */
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  padding-bottom: 40px;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+}
+
+input, select {
+  font-family: var(--font-body);
+  font-size: 16px; /* 16px stops iOS Safari from zooming in on focus */
+}
+
+/* Utility class — JS uses this to show/hide elements */
+.hidden {
+  display: none !important;
+}
+
+
+/* ============================================================
+   3. LAYOUT — header, main content, footer
+   ============================================================ */
+.app-header {
+  text-align: center;
+  padding: 28px 16px 22px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  
+  border-radius: 0 0 24px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.app-title {
+  font-size: 28px;
+  letter-spacing: 0.5px;
+}
+
+.app-subtitle {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+main {
+  max-width: 600px; /* keeps things readable on tablets/desktops */
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.section {
+  margin-bottom: 36px;
+}
+
+.section-title {
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+
+.app-footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   4. CARDS & LISTS
+   "Cards" are the white rounded boxes used everywhere.
+   ============================================================ */
+.card {
+  background-color: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: box-shadow var(--transition-base), transform var(--transition-fast);
+}
+
+/* Slight "press" feedback when tapping a card (e.g. history items) */
+.card:active {
+  transform: scale(0.995);
+}
+
+.card h3 {
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+/* A simple vertical list of label/value rows.
+   Used for: person-wise paid amounts, settlement suggestions,
+   clear-history entries, top-10 items, etc. JS builds rows
+   like: <div class="list-row"><span class="label">...</span>
+   <span class="value">...</span></div> */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 14px;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.list-row .label {
+  color: var(--color-text-muted);
+}
+
+.list-row .value {
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+/* A friendly empty-state message (e.g. "No expenses yet") */
+.empty-message {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+
+/* ============================================================
+   5. BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* Press animation — every button gently "shrinks" when tapped.
+   This is the easiest way to make a UI feel responsive/fun. */
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+.btn-secondary:hover {
+  background-color: #d4ede5;
+}
+
+.btn-accent {
+  background-color: var(--color-accent);
+  color: white;
+}
+.btn-accent:hover {
+  background-color: #d8431c;
+}
+
+/* Used later by history.js for Delete buttons */
+.btn-danger {
+  background-color: var(--color-accent-light);
+  color: var(--color-danger);
+}
+.btn-danger:hover {
+  background-color: #ffd9cf;
+}
+
+/* On mobile, buttons inside a section take the full width
+   so they're easy to tap. */
+.section .btn {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+.button-row .btn {
+  flex: 1;
+}
+
+
+/* ============================================================
+   6. FORM FIELDS
+   ============================================================ */
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 10px 0 4px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Highlight the field that's currently focused */
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.filters select,
+.filters input {
+  margin-bottom: 4px;
+}
+
+
+/* ============================================================
+   7. ADD EXPENSE — ITEM ROWS
+   Each item row is its own little card with a remove button.
+   ============================================================ */
+.item-row {
+  position: relative;
+  border: 1px dashed var(--color-border);
+  /* New rows slide + fade in when "+ Add Another Item" is pressed */
+  animation: rowIn 0.3s ease-out;
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.remove-row-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
+  font-size: 14px;
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+.remove-row-btn:active {
+  transform: scale(0.9) rotate(90deg);
+}
+
+
+/* ============================================================
+   8. MODALS
+   The password modal, edit modal, and clear-confirm modal all
+   share these styles.
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0; /* covers the whole screen */
+  background-color: rgba(30, 42, 38, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+  /* Fades the dark backdrop in every time the modal opens */
+  animation: overlayFade 0.2s ease-out;
+}
+
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-box {
+  background-color: var(--color-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-card-hover);
+  /* The "pop in" animation for the modal box itself */
+  animation: modalPop 0.25s ease-out;
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-box h2 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.modal-text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.modal-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.error-text {
+  color: var(--color-danger);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+
+/* ============================================================
+   9. TOAST — small pop-up notifications
+   Shown using the showToast() helper we'll write in config.js.
+   Note: the toast is NEVER given the .hidden class — instead it
+   sits off-screen-ish (opacity 0) until JS adds the "show" class.
+   ============================================================ */
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translate(-50%, -20px);
+  background-color: var(--color-text);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  box-shadow: var(--shadow-card-hover);
+  opacity: 0;
+  pointer-events: none; /* so it never blocks taps while invisible */
+  transition: opacity var(--transition-base), transform var(--transition-base);
+  z-index: 200;
+  max-width: 90%;
+  text-align: center;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+
+/* ============================================================
+   10. SPECIAL COMPONENTS
+   ============================================================ */
+
+/* --- Highlight card: "Current Active Bill" ---
+   This is the signature element of the page: a teal "receipt"
+   card with a torn / zig-zag bottom edge, made with two
+   diagonal gradients (no images needed!). */
+.highlight-card {
+  background-color: var(--color-primary);
+  background-image:
+    linear-gradient(-45deg, transparent 12px, var(--color-bg) 12px),
+    linear-gradient(45deg, transparent 12px, var(--color-bg) 12px);
+  background-position: left bottom, right bottom;
+  background-repeat: repeat-x;
+  background-size: 24px 24px;
+  
+  color: white;
+  text-align: center;
+  padding: 24px 16px 34px; /* extra bottom padding so text clears the torn edge */
+  box-shadow: var(--shadow-card-hover);
+}
+
+.highlight-card .card-label {
+  font-size: 13px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.highlight-card .card-value {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.highlight-card .card-sub {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.card-value-small {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+/* --- Averages grid (Daily / Weekly / Monthly) --- */
+.averages-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+}
+
+.average-box {
+  background-color: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 4px;
+}
+
+/* --- Special tracking grid (Fish / Egg / Oil / Rice) --- */
+.special-tracking-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.track-card {
+  background-color: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+
+/* --- Period buttons (Weekly / Monthly / Custom) --- */
+.period-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.period-buttons .btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Highlights whichever period button is currently selected.
+   analysis.js will toggle this class. */
+.period-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* --- Category tag (used later by history.js on each expense) --- */
+.category-tag {
+  display: inline-block;
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- Expense item card (used later by history.js) --- */
+.expense-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.expense-item .expense-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.expense-item .expense-amount {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+.expense-item .expense-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.expense-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.expense-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* --- Loading shimmer (for placeholders while data loads) --- */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-primary-light) 25%, #f0faf6 50%, var(--color-primary-light) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: var(--radius-sm);
+  height: 16px;
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+
+/* ============================================================
+   11. PAGE-LOAD ANIMATIONS
+   Each <section> gently fades + slides up as the page loads,
+   one after another (a "staggered" entrance). This runs purely
+   in CSS — no JavaScript required, so it works even before
+   any .js files exist.
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-section {
+  /* "both" = stay invisible during the delay, then stay visible
+     forever once the animation finishes */
+  animation: fadeUp 0.6s ease-out both;
+}
+
+/* Stagger each section slightly so they don't all move at once */
+.section:nth-of-type(1) { animation-delay: 0s;    }
+.section:nth-of-type(2) { animation-delay: 0.08s; }
+.section:nth-of-type(3) { animation-delay: 0.16s; }
+.section:nth-of-type(4) { animation-delay: 0.24s; }
+.section:nth-of-type(5) { animation-delay: 0.32s; }
+/* Calculation*/
+.calculator-fab {
+  position: fixed;
+  left: 18px;
+  bottom: 24px;
+  width: 50px;
+  height: 50px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1F8A70, #37C7A1);
+  color: #fff;
+  font-size: 25px;
+  box-shadow: 0 16px 35px rgba(31, 138, 112, 0.38);
+  z-index: 300;
+  animation: calcPulse 2.2s infinite;
+}
+
+@keyframes calcPulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.04); }
+}
+
+.calculator-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 20, 17, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 400;
+  padding: 18px;
+}
+
+.calculator-box {
+  width: 90%;
+  max-width: 280px;
+  border-radius: 30px;
+  padding: 18px;
+  background:
+    linear-gradient(145deg, rgba(20, 31, 29, 0.50), rgba(8, 12, 12, 0.50));
+  color: white;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.40),
+    inset 0 1px 0 rgba(255, 255, 255, 0.90);
+  animation: calcSlideUp 0.35s ease;
+}
+
+@keyframes calcSlideUp {
+  from { transform: translateY(80px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.calculator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.calculator-header span {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: #77F2CF;
+}
+
+.calculator-header button {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
+.calculator-display {
+  width: 100%;
+  background: #1A1A1A;
+color: #FFFFFF;
+  border: 1px solid rgba(119, 242, 207, 0.16);
+  border-radius: 15px;
+  text-align: right;
+  font-size: 28px;
+  padding: 22px 14px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.25);
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 11px;
+}
+
+.calculator-grid button {
+  height: 48px;
+  border-radius: 13px;
+  background: rgba(255,255,255,0.08);
+  color: #f7fffc;
+  font-size: 17px;
+  font-family: var(--font-display);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 8px 16px rgba(0,0,0,0.22);
+  transition: 0.16s ease;
+}
+
+.calculator-grid button:active {
+  transform: scale(0.92);
+  background: rgba(119, 242, 207, 0.22);
+}
+
+.calculator-grid button:nth-child(1),
+.calculator-grid button:nth-child(2),
+.calculator-grid button:nth-child(3) {
+  color: #FFB28A;
+}
+
+.calculator-grid button:nth-child(4n) {
+  background: linear-gradient(135deg, #F2542D, #FF8A4C);
+}
+
+.calc-equal {
+  grid-column: span 2;
+  background: linear-gradient(135deg, #1F8A70, #37C7A1) !important;
+  box-shadow: 0 10px 22px rgba(31, 138, 112, 0.35) !important;
+}
+
+/*Tab nav */
+.quick-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 250;
+
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px;
+
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border: 1px solid rgba(255,255,255,0.18);
+
+  box-shadow:
+    0 8px 32px rgba(31,138,112,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.35);
+
+  border-radius: 20px;
+}
+
+.quick-tabs button {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1F8A70;
+  font-family: var(--font-display);
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(31, 138, 112, 0.12);
+}
+
+.quick-tabs button.active {
+  background: linear-gradient(135deg, #1F8A70, #37C7A1);
+  color: white;
+
+  box-shadow:
+    0 8px 20px rgba(31,138,112,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+
+  transform: translateY(-2px);
+}
+.quick-tabs::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 1px;
+
+  background: rgba(255,255,255,0.6);
+}
+/* ============================================================
+   12. SCROLL-TO-TOP BUTTON
+   Stays invisible (opacity 0) until JS adds the "show" class
+   once the user has scrolled down a bit.
+   ============================================================ */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 20px;
+  box-shadow: var(--shadow-card-hover);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+  z-index: 90;
+}
+
+.scroll-top-btn.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.scroll-top-btn:active {
+  transform: scale(0.9);
+}
+
+
+/* ============================================================
+   13. RESPONSIVE TWEAKS
+   The site is mobile-first (everything above already works well
+   on phones). These rules just make better use of extra space
+   on tablets and desktops.
+   ============================================================ */
+@media (min-width: 640px) {
+  .section .btn {
+    width: auto; /* buttons no longer stretch full width */
+  }
+
+  .button-row {
+    justify-content: flex-end;
+  }
+  .button-row .btn {
+    flex: none;
+    min-width: 140px;
+  }
+}
+
+
+/* ============================================================
+   14. ACCESSIBILITY — respect "Reduce Motion"
+   If the user's device/browser has motion turned down, remove
+   all our extra animations and delays.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

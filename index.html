@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense World — Room Expense Manager</title>
+
+  <!-- Google Fonts:
+       "Fredoka" = rounded, friendly font for headings & big numbers
+       "Inter"   = clean font for normal text and data -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Our own stylesheet (we will create this in the next step) -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ====================================================
+       HEADER
+       Just the app name. Stays at the top of the page.
+  ==================================================== -->
+  <header class="app-header">
+    <h1 class="app-title">🧾 Expenses World</h1>
+    <p class="app-subtitle">Room Expenses Manager</p>
+  </header>
+
+  <!-- ====================================================
+       TOAST (small pop-up message)
+       Hidden by default. JS shows this for short messages
+       like "Saved!" or "Internet failed. Draft saved locally."
+       The function to show it (showToast) will live in config.js
+  ==================================================== -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- ====================================================
+       PASSWORD MODAL
+       Hidden by default. Shown by auth.js whenever the user
+       tries to Add / Edit / Delete / Clear Payment.
+       This ONE modal is reused for every password check.
+  ==================================================== -->
+  <div id="passwordModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h2>Enter Password</h2>
+      <p class="modal-text">This action needs the household password.</p>
+
+      <input
+        type="password"
+        id="passwordInput"
+        placeholder="Password"
+        autocomplete="current-password"
+      />
+
+      <!-- Shown only if the password is wrong -->
+      <p id="passwordError" class="error-text hidden">
+        Incorrect password. Please try again.
+      </p>
+
+      <div class="modal-actions">
+        <button id="passwordCancelBtn" class="btn btn-secondary" type="button">
+          Cancel
+        </button>
+        <button id="passwordSubmitBtn" class="btn btn-primary" type="button">
+          Unlock
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       MAIN CONTENT
+       All 5 sections, stacked top to bottom.
+       Order: Dashboard → Add Expense → Settle → History → Analysis
+  ==================================================== -->
+  <main>
+      <!-- ====================================================
+       Dashbot botton 
+       All 5 sections, stacked top to bottom.
+       Order: Dashboard → Add Expense → Settle → History → Analysis
+  ==================================================== -->
+<nav class="quick-tabs">
+  <button data-target="dashboard">📊 Dashboard</button>
+  <button data-target="addExpense">➕ Add</button>
+  <button data-target="settle">🤝 Settle</button>
+  <button data-target="history">📜 History</button>
+  <button data-target="analysis">📈 Analysis</button>
+</nav>
+    <!-- ================================================
+         SECTION 1: DASHBOARD
+         Shows the current bill, balances, and averages.
+         dashboard.js fills in all the empty values below.
+    ================================================ -->
+    <section id="dashboard" class="section fade-in-section">
+      <h2 class="section-title">📊 Dashboard</h2>
+
+      <!-- Big highlight card: Current Active Bill -->
+      <div class="card highlight-card">
+        <p class="card-label">Current Active Bill</p>
+        <!-- This number is filled by dashboard.js (with a count-up animation) -->
+        <p class="card-value" id="currentActiveBill">0</p>
+        <!-- Shows "Last Cleared: 23 Mar 2026" or "Last Cleared: Not cleared yet" -->
+        <p class="card-sub" id="lastClearedText">Last Cleared: Loading...</p>
+      </div>
+
+      <!-- Person-wise paid amounts -->
+      <div class="card">
+        <h3>Paid So Far</h3>
+        <!-- dashboard.js will insert one row per roommate here -->
+        <div id="personWisePaidList" class="list"></div>
+      </div>
+
+      <!-- Equal share per person -->
+      <div class="card">
+        <h3>Equal Share (per person)</h3>
+        <p class="card-value-small" id="equalShareAmount">0</p>
+      </div>
+
+      <!-- Who should pay whom -->
+      <div class="card">
+        <h3>Who Should Pay Whom</h3>
+        <!-- dashboard.js fills this with settlement suggestions,
+             or a friendly "All settled up!" message -->
+        <div id="settlementSuggestionList" class="list"></div>
+      </div>
+
+      <!-- Daily / Weekly / Monthly averages -->
+      <div class="card">
+        <h3>Spending Averages</h3>
+        <div class="averages-grid">
+          <div class="average-box">
+            <p class="card-label">Daily</p>
+            <p class="card-value-small" id="dailyAverage">0</p>
+          </div>
+          <div class="average-box">
+            <p class="card-label">Weekly</p>
+            <p class="card-value-small" id="weeklyAverage">0</p>
+          </div>
+          <div class="average-box">
+            <p class="card-label">Monthly</p>
+            <p class="card-value-small" id="monthlyAverage">0</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="refreshDashboardBtn" class="btn btn-secondary" type="button">
+        🔄 Refresh
+      </button>
+    </section>
+
+    <!-- ================================================
+         SECTION 2: ADD EXPENSE
+         Date + Paid By are set ONCE and shared by all
+         item rows below. add.js handles all the logic.
+    ================================================ -->
+    <section id="addExpense" class="section fade-in-section">
+      <h2 class="section-title">🛒 Add Expense</h2>
+
+      <!-- Shared fields for this batch of items -->
+      <div class="card">
+        <label for="expenseDate">Date</label>
+        <input type="date" id="expenseDate" />
+
+        <label for="paidBySelect">Paid By</label>
+        <!-- Options are loaded from the Roommates sheet by add.js -->
+        <select id="paidBySelect"></select>
+      </div>
+
+      <!-- Item rows get added here by add.js (cloned from the template below) -->
+      <div id="itemRowsContainer"></div>
+
+      <!-- ============================================
+           TEMPLATE for ONE item row.
+           This is NOT shown on the page directly.
+           add.js clones it every time "+ Add Another Item" is pressed.
+      ============================================ -->
+      <template id="itemRowTemplate">
+        <div class="item-row card">
+          <button type="button" class="remove-row-btn" title="Remove this item">
+            ✕
+          </button>
+
+          <label>Item Name</label>
+          <input
+            type="text"
+            class="item-name-input"
+            list="itemNameSuggestions"
+            placeholder="e.g. Fish"
+          />
+
+          <label>Amount</label>
+          <input
+            type="number"
+            class="item-amount-input"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          />
+
+          <label>Category</label>
+          <!-- Filled with options from the Categories sheet by add.js -->
+          <select class="item-category-select"></select>
+
+          <label>Quantity (optional)</label>
+          <input
+            type="number"
+            class="item-quantity-input"
+            min="0"
+            step="0.01"
+            placeholder="optional"
+          />
+
+          <label>Note (optional)</label>
+          <input type="text" class="item-note-input" placeholder="optional" />
+        </div>
+      </template>
+
+      <!-- Item-name autocomplete suggestions, filled by add.js -->
+      <datalist id="itemNameSuggestions"></datalist>
+
+      <div class="button-row">
+        <button id="addAnotherItemBtn" class="btn btn-secondary" type="button">
+          + Add Another Item
+        </button>
+        <button id="saveExpensesBtn" class="btn btn-primary" type="button">
+          💾 Save
+        </button>
+      </div>
+
+      <!-- Shown only when saving fails because of no internet -->
+      <p id="draftMessage" class="error-text hidden">
+        Internet failed. Draft saved locally.
+      </p>
+      <button id="syncLaterBtn" class="btn btn-secondary hidden" type="button">
+        🔁 Sync Later
+      </button>
+    </section>
+
+    <!-- ================================================
+         SECTION 3: SETTLE / CLEAR PAYMENT
+    ================================================ -->
+    <section id="settle" class="section fade-in-section">
+      <h2 class="section-title">🤝 Settle Up</h2>
+
+      <!-- Live preview of totals, before clearing -->
+      <div class="card">
+        <h3>Current Cycle Summary</h3>
+        <div id="settlePreview" class="list"></div>
+      </div>
+
+      <button id="clearPaymentBtn" class="btn btn-accent" type="button">
+        ✅ Clear Payment
+      </button>
+
+      <!-- ============================================
+           CLEAR CONFIRMATION MODAL
+           Shown when "Clear Payment" is pressed.
+           User must type CLEAR to confirm.
+      ============================================ -->
+      <div id="clearConfirmModal" class="modal-overlay hidden">
+        <div class="modal-box">
+          <h2>Confirm Clear Payment</h2>
+
+          <!-- settle.js fills this with total / per-person / settlement details -->
+          <div id="clearConfirmDetails" class="list"></div>
+
+          <p class="modal-text">
+            Type <strong>CLEAR</strong> below to confirm.
+            <br />This cannot be undone.
+          </p>
+          <input type="text" id="clearConfirmInput" placeholder="Type CLEAR" />
+
+          <div class="modal-actions">
+            <button id="clearConfirmCancelBtn" class="btn btn-secondary" type="button">
+              Cancel
+            </button>
+            <button id="clearConfirmSubmitBtn" class="btn btn-accent" type="button">
+              Clear Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past clear cycles -->
+      <div class="card">
+        <h3>Past Clear Cycles</h3>
+        <div id="clearHistoryList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- ================================================
+         SECTION 4: HISTORY
+    ================================================ -->
+    <section id="history" class="section fade-in-section">
+      <h2 class="section-title">📜 History</h2>
+
+      <!-- Filters -->
+      <div class="card filters">
+        <label for="filterStatus">Status</label>
+        <select id="filterStatus">
+          <option value="Active">Active</option>
+          <option value="Cleared">Cleared</option>
+          <option value="Deleted">Deleted</option>
+          <option value="All">All</option>
+        </select>
+
+        <label for="filterCategory">Category</label>
+        <!-- "All Categories" + options from Categories sheet, filled by history.js -->
+        <select id="filterCategory">
+          <option value="">All Categories</option>
+        </select>
+
+        <label for="filterStartDate">From</label>
+        <input type="date" id="filterStartDate" />
+
+        <label for="filterEndDate">To</label>
+        <input type="date" id="filterEndDate" />
+
+        <button id="applyFiltersBtn" class="btn btn-secondary" type="button">
+         .✦ ݁˖ Apply Filters
+        </button>
+      </div>
+
+      <!-- history.js inserts one card per expense here -->
+      <div id="historyList" class="list"></div>
+
+      <!-- ============================================
+           EDIT EXPENSE MODAL
+           Opened when the user taps "Edit" on a history item.
+      ============================================ -->
+      <div id="editExpenseModal" class="modal-overlay hidden">
+        <div class="modal-box">
+          <h2>Edit Expense</h2>
+
+          <!-- Hidden field: remembers WHICH expense we're editing -->
+          <input type="hidden" id="editExpenseId" />
+
+          <label for="editDate">Date</label>
+          <input type="date" id="editDate" />
+
+          <label for="editPaidBy">Paid By</label>
+          <select id="editPaidBy"></select>
+
+          <label for="editItemName">Item Name</label>
+          <input type="text" id="editItemName" />
+
+          <label for="editCategory">Category</label>
+          <select id="editCategory"></select>
+
+          <label for="editAmount">Amount</label>
+          <input type="number" id="editAmount" min="0" step="0.01" />
+
+          <label for="editQuantity">Quantity (optional)</label>
+          <input type="number" id="editQuantity" min="0" step="0.01" />
+
+          <label for="editNote">Note (optional)</label>
+          <input type="text" id="editNote" />
+
+          <div class="modal-actions">
+            <button id="editCancelBtn" class="btn btn-secondary" type="button">
+              Cancel
+            </button>
+            <button id="editSaveBtn" class="btn btn-primary" type="button">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================
+         SECTION 5: ANALYSIS
+    ================================================ -->
+    <section id="analysis" class="section fade-in-section">
+      <h2 class="section-title">📈 Analysis</h2>
+
+      <!-- Period picker: Weekly / Monthly / Custom -->
+      <div class="card filters">
+        <div class="period-buttons">
+          <button class="btn btn-secondary period-btn" data-period="weekly" type="button">
+            Weekly
+          </button>
+          <button class="btn btn-secondary period-btn" data-period="monthly" type="button">
+            Monthly
+          </button>
+          <button class="btn btn-secondary period-btn" data-period="custom" type="button">
+            Custom
+          </button>
+        </div>
+
+        <!-- Shown only when "Custom" is selected -->
+        <div id="customDateRange" class="hidden">
+          <label for="analysisStartDate">From</label>
+          <input type="date" id="analysisStartDate" />
+          <label for="analysisEndDate">To</label>
+          <input type="date" id="analysisEndDate" />
+          <button id="applyAnalysisBtn" class="btn btn-primary" type="button">
+            Apply
+          </button>
+        </div>
+      </div>
+
+      <!-- Charts (drawn using Chart.js, loaded below) -->
+      <div class="card">
+        <h3>Category-wise Spend</h3>
+        <canvas id="categoryChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Person-wise Contribution</h3>
+        <canvas id="personChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Spend Over Time</h3>
+        <canvas id="spendOverTimeChart"></canvas>
+      </div>
+
+      <!-- Top 10 most purchased items -->
+      <div class="card">
+        <h3>🏆 Top 10 Items</h3>
+        <div id="topItemsList" class="list"></div>
+      </div>
+
+      <!-- Special tracking: Fish / Egg / Oil / Rice -->
+      <div class="card">
+        <h3>🎯 Special Tracking</h3>
+        <div class="special-tracking-grid">
+          <div class="track-card" id="trackFish">
+            <h4>🐟 Fish</h4>
+          </div>
+          <div class="track-card" id="trackEgg">
+            <h4>🥚 Egg</h4>
+          </div>
+          <div class="track-card" id="trackOil">
+            <h4>🛢️ Oil</h4>
+          </div>
+          <div class="track-card" id="trackRice">
+            <h4>🍚 Rice</h4>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <button id="calculatorFab" class="calculator-fab" type="button">
+  🧮
+</button>
+
+<div id="calculatorModal" class="calculator-modal hidden">
+  <div class="calculator-box">
+    <div class="calculator-header">
+      <span>Calculator</span>
+      <button id="calculatorCloseBtn" type="button">✕</button>
+    </div>
+
+    <input id="calculatorDisplay" class="calculator-display" type="text" readonly value="0" />
+
+    <div class="calculator-grid">
+      <button data-calc="C">C</button>
+      <button data-calc="DEL">⌫</button>
+      <button data-calc="%">%</button>
+      <button data-calc="/">÷</button>
+
+      <button data-calc="7">7</button>
+      <button data-calc="8">8</button>
+      <button data-calc="9">9</button>
+      <button data-calc="*">×</button>
+
+      <button data-calc="4">4</button>
+      <button data-calc="5">5</button>
+      <button data-calc="6">6</button>
+      <button data-calc="-">−</button>
+
+      <button data-calc="1">1</button>
+      <button data-calc="2">2</button>
+      <button data-calc="3">3</button>
+      <button data-calc="+">+</button>
+
+      <button data-calc="0">0</button>
+      <button data-calc=".">.</button>
+      <button data-calc="=" class="calc-equal">=</button>
+    </div>
+  </div>
+</div>
+  <!-- ====================================================
+       SCROLL-TO-TOP BUTTON
+       Hidden until the user scrolls down a bit.
+       Pure visual nicety — config.js will handle showing it.
+  ==================================================== -->
+  <button id="scrollTopBtn" class="scroll-top-btn hidden" type="button" title="Back to top">
+    ↑
+  </button>
+
+  <footer class="app-footer">
+    <p>Just for Digital World 📊— Expenses World</p>
+  </footer>
+
+  <!-- ====================================================
+       SCRIPTS
+       Order matters here!
+       1. Chart.js (from CDN) — needed for the Analysis charts
+       2. config.js  — constants + shared helper functions (load first)
+       3. api.js     — talks to Apps Script
+       4. auth.js    — password handling
+       5. The rest   — one file per section
+  ==================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="config.js?v=1"></script>
+<script src="api.js?v=1"></script>
+<script src="auth.js?v=1"></script>
+<script src="dashboard.js?v=1"></script>
+<script src="add.js?v=1"></script>
+<script src="history.js?v=10"></script>
+<script src="settle.js?v=1"></script>
+<script src="analysis.js?v=1"></script>
+</body>
+</html>

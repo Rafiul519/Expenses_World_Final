@@ -717,7 +717,7 @@ select:focus {
 
 .calculator-display {
   width: 100%;
-  background: #1A1A1A;
+  background: rgba(119, 242, 207, 0.16);
 color: #FFFFFF;
   border: 1px solid rgba(119, 242, 207, 0.16);
   border-radius: 15px;
